@@ -2,7 +2,8 @@
  *
  * @Course : Operating Systems , Lab 2
  * @Author : Sanchit Mehta<sanchit.mehta@cs.nyu.edu>
- * @NYUID :  N17896805
+ * @Desc: Main class that scans input and calls 
+ *        all Schedulers
  *
  */
 
@@ -53,38 +54,6 @@ public class Scheduler {
         } catch (Exception e) {
             System.out.println(e);
             System.out.println("Erooorrr");
-        }
-    }
-    
-    //Static class to return a random number from the pre rand generated file
-    static class randomGenerator {
-        private static ArrayList < Integer > randomNums = new ArrayList < Integer > ();
-        private static int count = 0;
-        static File file = new File("random-numbers.txt");
-        static void initialise() {
-            try {
-                BufferedReader reader = new BufferedReader(new FileReader(file));
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    randomNums.add(Integer.parseInt(line.trim()));
-                }
-                reader.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        
-        static void reset() {
-            count = 0;
-        }
-        
-        static int get(int U) {
-            if (randomNums.size() == 0)
-                randomGenerator.initialise();
-            int rand = randomNums.get(count++);
-            return 1 + (rand % U);
         }
     }
 }
