@@ -25,10 +25,13 @@ public class Scheduler {
     public Scheduler(String inputFile) throws Exception {
         this.fileName = inputFile;
         readInput();
-        FCFS f = new FCFS(procs);
-        System.out.println("\n\n\n\n");
-        SJS sj = new SJS(procs);
+        //FCFS f = new FCFS(procs);
+        //System.out.println("\n\n\n\n");
+        //SJS sj = new SJS(procs);
+        //System.out.println("\n\n\n\n");
         //UniProgrammed up = new UniProgrammed(procs);
+        //System.out.println("\n\n\n\n");
+        RoundRobin rr = new RoundRobin(procs);
     }
     
     public void readInput() throws Exception {

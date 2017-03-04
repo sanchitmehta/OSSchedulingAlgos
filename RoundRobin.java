@@ -1,14 +1,18 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.PriorityQueue;
-
-/**
- * Created by sanchitmehta on 03/03/17.
+/*
+ *
+ * @Course : Operating Systems , Lab 2
+ * @Author : Sanchit Mehta<sanchit.mehta@cs.nyu.edu>
+ * @Desc: Main class that scans input and calls
+ *        all Schedulers
+ *
  */
+
+import java.util.*;
+
 public class RoundRobin {
     ArrayList<Process> procs;
     ArrayList<Process> notStartedQ = new ArrayList<Process>();
-    PriorityQueue<Process> readyQ 	= new PriorityQueue<Process>(new CompareByExecutionTime());
+    Queue<Process> readyQ 	= new LinkedList<>();
     ArrayList<Process> blockedQ= new ArrayList<Process>();
     ArrayList<Process> finishedQ = new ArrayList<Process>();
 
@@ -17,6 +21,7 @@ public class RoundRobin {
     int ioTime = 0;
     int finishedCount = 0;
     int quantum = 2;
+    boolean detailedOP = false;
 
     public RoundRobin(ArrayList<Process> procs){
 
@@ -40,7 +45,7 @@ public class RoundRobin {
                     +p.multiplier+") ");
         }
 
-        System.out.println("\n\n\nThe scheduling algorithm used was First Come First Served\n");
+        System.out.println("\n\n\nThe scheduling algorithm used was Round Robin\n");
         //default sorts by arrival time
         cycleCount = 0;
         Process currRunningProc = null;
@@ -55,19 +60,23 @@ public class RoundRobin {
         //clock goes tick tock tick tock
         while(finishedCount<numProcs){
 
-
             //put unstarted process into ready
             //since unstarted is sorted by arrtime, we'll only
             //check the list head
             boolean flag = false;
+            ArrayList<Process> toBeRemoved = new ArrayList<>();
             for(Process p:notStartedQ){
                 if(p.arrivalTime == cycleCount){
                     readyQ.add(p);
                     flag=true;
+                    toBeRemoved.add(p);
                 }
             }
             if(flag)
-                notStartedQ.remove(readyQ.peek());
+                if(flag) {
+                    for(Process p:toBeRemoved)
+                        notStartedQ.remove(p);
+                }
 
 
 
@@ -78,10 +87,11 @@ public class RoundRobin {
                 currRunningProc.setRandomBurstForCPU();
             }
 
-
             cycleCount++;
             quantum--;
-            printProcessState(numProcs);
+
+            if(detailedOP)
+                printProcessState(numProcs);
 
 
             if(currRunningProc!=null){
@@ -96,7 +106,7 @@ public class RoundRobin {
             if(!blockedQ.isEmpty()){
                 ioTime++;
                 int addToReadyNum = 0;
-                PriorityQueue<Process> addToReadyProcess = new PriorityQueue<>(new TieBreakerComparator());
+                PriorityQueue<Process> addToReadyProcess = new PriorityQueue<>(new CompareByArrivalTime());
                 Process[] pArray = blockedQ.toArray(new Process [0]);
                 for(int i=0;i<pArray.length;i++){
                     pArray[i].ioTime++;
@@ -107,30 +117,30 @@ public class RoundRobin {
                         blockedQ.remove(pArray[i]);
                     }
                 }
+                //if there are multiple processes turned ready at the same time, then sort by priority
                 readyQ.addAll(addToReadyProcess);
             }
 
-            if(!blockedQ.isEmpty())
-                ioTime++;
-
-            if(currRunningProc!=null){
-                if(currRunningProc.totalCPUTimeRemaining==0){
-                    finishedCount++;
-                    currRunningProc.finishingTime = cycleCount;
-                    readyQ.remove(currRunningProc);
-                    finishedQ.add(currRunningProc);
-                    currRunningProc=null;
-                }else if(currRunningProc.totalCPUTimeRemaining>0&&
-                        currRunningProc.currCPUBurst==0){
-                    blockedQ.add(currRunningProc);
-                    currRunningProc=null;
+                if (currRunningProc != null) {
+                    if (currRunningProc.totalCPUTimeRemaining == 0) {
+                        finishedCount++;
+                        currRunningProc.finishingTime = cycleCount;
+                        readyQ.remove(currRunningProc);
+                        finishedQ.add(currRunningProc);
+                        currRunningProc = null;
+                        if(quantum<=0) quantum=2;
+                    } else if (currRunningProc.totalCPUTimeRemaining > 0 &&
+                            currRunningProc.currCPUBurst == 0) {
+                        blockedQ.add(currRunningProc);
+                        currRunningProc = null;
+                        if(quantum<=0) quantum=2;
+                    }
                 }
-            }
-        }
 
+        }
+        Collections.sort(procs,new CompareByProcessID());
         float turnaround=0;
         float waiting=0;
-        Collections.sort(procs,new CompareByProcessID());
         for(int i=0;i<procs.size();i++) {
             Process p = procs.get(i);
             System.out.println("\n");
@@ -145,6 +155,7 @@ public class RoundRobin {
             System.out.println("\tWaiting time : "+p.waitingTime);
             turnaround+=(p.finishingTime-p.arrivalTime);
             waiting+=p.waitingTime;
+            p.clear();
         }
 
         System.out.println("\n\nSummary Data: ");
@@ -154,6 +165,7 @@ public class RoundRobin {
         System.out.println("\tThroughput: "+String.format("%.6f",(((float)numProcs/(float)cycleCount)*100))+" processes per hundred cycles");
         System.out.println("\tAverage turnaround time: "+String.format("%.6f",(float)(turnaround/numProcs)));
         System.out.println("\tAverage waiting time: "+String.format("%.6f",(float)(waiting/numProcs)));
+        Process.randomGenerator.resetPtr();
     }
 
     public void printProcessState(int numProcs){
