@@ -25,21 +25,26 @@ public class Scheduler {
     public Scheduler(String inputFile) throws Exception {
         this.fileName = inputFile;
         readInput();
+        FCFS f = new FCFS(procs);
+        System.out.println("\n\n\n\n");
+        SJS sj = new SJS(procs);
+        //UniProgrammed up = new UniProgrammed(procs);
     }
     
     public void readInput() throws Exception {
         File f = new File(fileName);
         Scanner sc = new Scanner(f);
         String input = sc.nextLine();
+        System.out.println("\n");
         input = input.replaceAll("\\(", "").replaceAll("\\)", "");
         String[] inputs = input.split("\\s+");
         int noOfProcesses = Integer.parseInt(inputs[0]);
-        System.out.println(noOfProcesses);
-        for (int i = 1; i < noOfProcesses * 4; i = i * 4) {
+        for (int i = 1; i < noOfProcesses * 4; i = i + 4) {
             Process p = new Process(Integer.parseInt(inputs[i]),
                                     Integer.parseInt(inputs[i + 1]),
                                     Integer.parseInt(inputs[i + 2]),
-                                    Integer.parseInt(inputs[i + 3]));
+                                    Integer.parseInt(inputs[i + 3]),
+                                    i-1);
             procs.add(p);
         }
         Collections.sort(procs);
