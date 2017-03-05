@@ -22,16 +22,25 @@ public class Scheduler {
     
     
     
-    public Scheduler(String inputFile) throws Exception {
+    public Scheduler(String inputFile,String algo,Boolean detailedOP) throws Exception {
         this.fileName = inputFile;
         readInput();
-        //FCFS f = new FCFS(procs);
-        //System.out.println("\n\n\n\n");
-        //SJS sj = new SJS(procs);
-        //System.out.println("\n\n\n\n");
-        //UniProgrammed up = new UniProgrammed(procs);
-        //System.out.println("\n\n\n\n");
-        RoundRobin rr = new RoundRobin(procs);
+        System.out.println("\n\n");
+        switch(algo.toLowerCase()){
+            case "fcfs":
+                FCFS f = new FCFS(procs,detailedOP);
+                break;
+            case "sjf":
+                SJS sj = new SJS(procs,detailedOP);
+                break;
+            case "rr":
+                RoundRobin rr = new RoundRobin(procs,false);
+                break;
+            case "uni":
+                UniProgrammed up = new UniProgrammed(procs,detailedOP);
+                break;
+        }
+        System.out.println("\n\n");
     }
     
     public void readInput() throws Exception {
@@ -55,10 +64,10 @@ public class Scheduler {
     
     
     public static void main(String args[]) {
-        if (args.length != 1)
-            throw new IllegalArgumentException("Exactly 1 parameters required : <Input File Name>");
+        if (args.length != 3)
+            throw new IllegalArgumentException("Exactly 3 parameters required : <Input File Name> <SchedulingAlgo: (fcfs,sjf,rr,uni)> <Detailed-OP : (0,1)>");
         try {
-            Scheduler s = new Scheduler(args[0]);
+            Scheduler s = new Scheduler(args[0],args[1],args[2].equals("1")?true:false);
         } catch (Exception e) {
             System.out.println(e);
             System.out.println("Erooorrr");

@@ -15,6 +15,7 @@ public class RoundRobin {
     Queue<Process> readyQ 	= new LinkedList<>();
     ArrayList<Process> blockedQ= new ArrayList<Process>();
     ArrayList<Process> finishedQ = new ArrayList<Process>();
+    ArrayList<Process> add2Ready = new ArrayList<>();
 
     int cycleCount = 0;
     int cpuTime = 0;
@@ -23,8 +24,9 @@ public class RoundRobin {
     int quantum = 2;
     boolean detailedOP = false;
 
-    public RoundRobin(ArrayList<Process> procs){
+    public RoundRobin(ArrayList<Process> procs,boolean detailedOP){
 
+        this.detailedOP = detailedOP;
         this.procs = procs;
         int numProcs = procs.size();
         System.out.print("The original input was: "+numProcs);
@@ -36,7 +38,8 @@ public class RoundRobin {
                     +p.multiplier+") ");
         }
         System.out.println();
-        System.out.print("The original input was: "+numProcs);
+        Collections.sort(procs,new CompareByArrivalTime());
+        System.out.print("The (sorted) input is: "+numProcs);
         for(int i=0;i<procs.size();i++) {
             Process p = procs.get(i);
             System.out.print(" ("+p.arrivalTime+" "
@@ -45,7 +48,6 @@ public class RoundRobin {
                     +p.multiplier+") ");
         }
 
-        System.out.println("\n\n\nThe scheduling algorithm used was Round Robin\n");
         //default sorts by arrival time
         cycleCount = 0;
         Process currRunningProc = null;
@@ -54,7 +56,9 @@ public class RoundRobin {
         for(int i=0;i<numProcs;i++)
             notStartedQ.add(procs.get(i));
 
-        printProcessState(numProcs);
+        System.out.println("\n\n");
+        if(detailedOP)
+            printProcessState(numProcs,0);
 
         //While all processes have not finished execution
         //clock goes tick tock tick tock
@@ -80,19 +84,19 @@ public class RoundRobin {
 
 
 
-
             //no running process, getting a process to run from ready
             if(currRunningProc == null&&!readyQ.isEmpty()){
+                quantum=2;
                 currRunningProc = readyQ.remove();
-                currRunningProc.setRandomBurstForCPU();
+                if(currRunningProc.currCPUBurst<=0) {
+                    currRunningProc.setRandomBurstForCPU();
+                }
             }
 
             cycleCount++;
             quantum--;
-
             if(detailedOP)
-                printProcessState(numProcs);
-
+                printProcessState(numProcs,quantum);
 
             if(currRunningProc!=null){
                 currRunningProc.addRunTimes();
@@ -106,19 +110,18 @@ public class RoundRobin {
             if(!blockedQ.isEmpty()){
                 ioTime++;
                 int addToReadyNum = 0;
-                PriorityQueue<Process> addToReadyProcess = new PriorityQueue<>(new CompareByArrivalTime());
-                Process[] pArray = blockedQ.toArray(new Process [0]);
-                for(int i=0;i<pArray.length;i++){
-                    pArray[i].ioTime++;
-                    pArray[i].currIOBurst--;
-                    if(pArray[i].currIOBurst == 0){
+                Process[] blockedProcs = blockedQ.toArray(new Process [0]);
+                for(int i=0;i<blockedProcs.length;i++){
+                    blockedProcs[i].ioTime++;
+                    blockedProcs[i].currIOBurst--;
+                    if(blockedProcs[i].currIOBurst == 0){
                         addToReadyNum++;
-                        addToReadyProcess.add(pArray[i]);
-                        blockedQ.remove(pArray[i]);
+                        add2Ready.add(blockedProcs[i]);
+                        blockedQ.remove(blockedProcs[i]);
                     }
                 }
                 //if there are multiple processes turned ready at the same time, then sort by priority
-                readyQ.addAll(addToReadyProcess);
+                //add2Ready.addAll(addToReadyProcess);
             }
 
                 if (currRunningProc != null) {
@@ -128,17 +131,26 @@ public class RoundRobin {
                         readyQ.remove(currRunningProc);
                         finishedQ.add(currRunningProc);
                         currRunningProc = null;
-                        if(quantum<=0) quantum=2;
-                    } else if (currRunningProc.totalCPUTimeRemaining > 0 &&
-                            currRunningProc.currCPUBurst == 0) {
+                        quantum=2;
+                    } else if ((currRunningProc.totalCPUTimeRemaining > 0 &&
+                            currRunningProc.currCPUBurst == 0)) {
                         blockedQ.add(currRunningProc);
                         currRunningProc = null;
-                        if(quantum<=0) quantum=2;
+                        quantum=2;
+                    }else if(quantum<=0){
+                        //readyQ.add(currRunningProc);
+                        add2Ready.add(0,currRunningProc);
+                        currRunningProc=null;
+                        quantum=2;
                     }
                 }
-
+            Collections.sort(add2Ready,new CompareByArrivalTime());
+            for(Process p :add2Ready)
+                readyQ.add(p);
+            add2Ready.clear();
         }
-        Collections.sort(procs,new CompareByProcessID());
+        System.out.println("\n\n\nThe scheduling algorithm used was Round Robin\n\n");
+        Collections.sort(procs,new CompareByArrivalTime());
         float turnaround=0;
         float waiting=0;
         for(int i=0;i<procs.size();i++) {
@@ -149,10 +161,10 @@ public class RoundRobin {
                     +p.burstTime+","
                     +p.totalCPUTime+","
                     +p.multiplier+")");
-            System.out.println("\tFinishing Time : "+p.finishingTime);
+            System.out.println("\tFinishing time: "+p.finishingTime);
             System.out.println("\tTurnaround time: "+(p.finishingTime-p.arrivalTime));
-            System.out.println("\tI/O time : "+p.ioTime);
-            System.out.println("\tWaiting time : "+p.waitingTime);
+            System.out.println("\tI/O time: "+p.ioTime);
+            System.out.println("\tWaiting time: "+p.waitingTime);
             turnaround+=(p.finishingTime-p.arrivalTime);
             waiting+=p.waitingTime;
             p.clear();
@@ -168,19 +180,19 @@ public class RoundRobin {
         Process.randomGenerator.resetPtr();
     }
 
-    public void printProcessState(int numProcs){
-        System.out.print("Before cycle\t"+cycleCount+"  ");
+    public void printProcessState(int numProcs,int quantum){
+        System.out.print("Before cycle:\t"+cycleCount+"  ");
         for(int i=0;i<numProcs;i++){
             if(blockedQ.contains(procs.get(i)))
-                System.out.print("\tblocked  "+procs.get(i).currIOBurst+"\t");
+                System.out.print("\tblocked  "+procs.get(i).currIOBurst);
             else if(readyQ.contains(procs.get(i)))
                 System.out.print("\tready   0");
             else if(finishedQ.contains(procs.get(i)))
                 System.out.print("\tterminated  ");
             else if(notStartedQ.contains(procs.get(i)) && cycleCount <= procs.get(i).arrivalTime)
-                System.out.print("\tunstarted");
+                System.out.print("\tunstarted 0");
             else
-                System.out.print("\trunning  "+((1+procs.get(i).currCPUBurst)-1));
+                System.out.print("\trunning  "+Math.min((quantum+1),procs.get(i).currCPUBurst));
         }
         System.out.println(".");
     }

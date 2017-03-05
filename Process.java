@@ -32,7 +32,9 @@ public class Process implements Comparable < Process > {
     int finishingTime = 0;
     int ioTime = 0;
     int waitingTime = 0;
-    
+
+    //RR
+    int lastRunning = 0;
     
     public Process(int A, int B, int C, int M,int id) {
         this.arrivalTime = A;

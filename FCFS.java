@@ -24,7 +24,8 @@ public class FCFS{
     int finishedCount = 0;
     boolean detailedOP = false;
 
-    public FCFS(ArrayList<Process> procs){
+    public FCFS(ArrayList<Process> procs,boolean detailedOP){
+        this.detailedOP = detailedOP;
         this.procs = procs;
         int numProcs = procs.size();
         System.out.print("The original input was: "+numProcs);
@@ -37,7 +38,7 @@ public class FCFS{
         }
         System.out.println();
         Collections.sort(procs);
-        System.out.print("The original input was: "+numProcs);
+        System.out.print("The (sorted) input is: "+numProcs);
         for(int i=0;i<procs.size();i++) {
             Process p = procs.get(i);
             System.out.print(" ("+p.arrivalTime+" "
@@ -46,12 +47,11 @@ public class FCFS{
                              +p.multiplier+") ");
         }
 
-        System.out.println("\n\n\nThe scheduling algorithm used was First Come First Served\n");
         //default sorts by arrival time
         cycleCount = 0;
         Process currRunningProc = null;
 
-        
+        System.out.println("\n\n");
         for(int i=0;i<numProcs;i++)
             notStartedQ.add(procs.get(i));
         if(detailedOP)
@@ -108,14 +108,14 @@ public class FCFS{
                 ioTime++;
                 int addToReadyNum = 0;
                 PriorityQueue<Process> addToReadyProcess = new PriorityQueue<>(new TieBreakerComparator());
-                Process[] pArray = blockedQ.toArray(new Process [0]);
-                for(int i=0;i<pArray.length;i++){
-                    pArray[i].ioTime++;
-                    pArray[i].currIOBurst--;
-                    if(pArray[i].currIOBurst == 0){
+                Process[] blockedProcs = blockedQ.toArray(new Process [0]);
+                for(int i = 0; i< blockedProcs.length; i++){
+                    blockedProcs[i].ioTime++;
+                    blockedProcs[i].currIOBurst--;
+                    if(blockedProcs[i].currIOBurst == 0){
                         addToReadyNum++;
-                        addToReadyProcess.add(pArray[i]);
-                        blockedQ.remove(pArray[i]);
+                        addToReadyProcess.add(blockedProcs[i]);
+                        blockedQ.remove(blockedProcs[i]);
                     }
                 }
                 //if there are multiple processes turned ready at the same time, then sort by priority
@@ -137,7 +137,8 @@ public class FCFS{
                 }
             }
         }
-        Collections.sort(procs,new CompareByProcessID());
+        System.out.println("\n\nThe scheduling algorithm used was First Come First Served\n\n");
+        Collections.sort(procs,new CompareByArrivalTime());
         float turnaround=0;
         float waiting=0;
         for(int i=0;i<procs.size();i++) {
@@ -148,10 +149,10 @@ public class FCFS{
                                                 +p.burstTime+","
                                                 +p.totalCPUTime+","
                                                 +p.multiplier+")");
-            System.out.println("\tFinishing Time : "+p.finishingTime);
+            System.out.println("\tFinishing time: "+p.finishingTime);
             System.out.println("\tTurnaround time: "+(p.finishingTime-p.arrivalTime));
-            System.out.println("\tI/O time : "+p.ioTime);
-            System.out.println("\tWaiting time : "+p.waitingTime);
+            System.out.println("\tI/O time: "+p.ioTime);
+            System.out.println("\tWaiting time: "+p.waitingTime);
             turnaround+=(p.finishingTime-p.arrivalTime);
             waiting+=p.waitingTime;
             p.clear();
@@ -168,16 +169,16 @@ public class FCFS{
     }
 
     public void printProcessState(int numProcs){
-        System.out.print("Before cycle\t"+cycleCount+"  ");
+        System.out.print("Before cycle:\t"+cycleCount+"  ");
         for(int i=0;i<numProcs;i++){
             if(blockedQ.contains(procs.get(i)))
-                System.out.print("\tblocked  "+procs.get(i).currIOBurst+"\t");
+                System.out.print("\tblocked  "+procs.get(i).currIOBurst);
             else if(readyQ.contains(procs.get(i)))
                 System.out.print("\tready   0");
             else if(finishedQ.contains(procs.get(i)))
                 System.out.print("\tterminated  ");
             else if(notStartedQ.contains(procs.get(i)) && cycleCount <= procs.get(i).arrivalTime)
-                System.out.print("\tunstarted");
+                System.out.print("\tunstarted 0");
             else
                 System.out.print("\trunning  "+((1+procs.get(i).currCPUBurst)-1));
         }

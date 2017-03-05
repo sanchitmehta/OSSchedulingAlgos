@@ -11,7 +11,7 @@ import java.util.*;
 public class UniProgrammed {
     ArrayList<Process> procs;
     ArrayList<Process> notStartedQ = new ArrayList<Process>();
-    Queue<Process> readyQ 	= new LinkedList<Process>();
+    Queue<Process> readyQ 	= new LinkedList<>();
     ArrayList<Process> blockedQ= new ArrayList<Process>();
     ArrayList<Process> finishedQ = new ArrayList<Process>();
 
@@ -21,7 +21,8 @@ public class UniProgrammed {
     int finishedCount = 0;
     boolean detailedOP = false;
 
-    public UniProgrammed(ArrayList<Process> procs){
+    public UniProgrammed(ArrayList<Process> procs,boolean detailedOP){
+        this.detailedOP = detailedOP;
         this.procs = procs;
         int numProcs = procs.size();
         System.out.print("The original input was: "+numProcs);
@@ -34,7 +35,7 @@ public class UniProgrammed {
         }
         System.out.println();
         Collections.sort(procs);
-        System.out.print("The original input was: "+numProcs);
+        System.out.print("The (sorted) input is: "+numProcs);
         for(int i=0;i<procs.size();i++) {
             Process p = procs.get(i);
             System.out.print(" ("+p.arrivalTime+" "
@@ -43,11 +44,10 @@ public class UniProgrammed {
                     +p.multiplier+") ");
         }
 
-        System.out.println("\n\n\nThe scheduling algorithm used was Uniprocessing\n\n");
         cycleCount = 0;
         Process currRunningProc = null;
 
-
+        System.out.println("\n\n");
 
         for(int i=0;i<numProcs;i++)
             notStartedQ.add(procs.get(i));
@@ -97,27 +97,22 @@ public class UniProgrammed {
 
             if(!blockedQ.isEmpty()){
                 ioTime++;
-                PriorityQueue<Process> addToReadyProcess = new PriorityQueue<>(new TieBreakerComparator());
-                Process[] pArray = blockedQ.toArray(new Process [0]);
-                for(int i=0;i<pArray.length;i++){
-                    pArray[i].ioTime++;
-                    pArray[i].currIOBurst--;
-                    if(pArray[i].currIOBurst == 0){
-                        currRunningProc = pArray[i];
+                Process[] blockedProcs = blockedQ.toArray(new Process [0]);
+                for(int i=0;i<blockedProcs.length;i++){
+                    blockedProcs[i].ioTime++;
+                    blockedProcs[i].currIOBurst--;
+                    if(blockedProcs[i].currIOBurst == 0){
+                        currRunningProc = blockedProcs[i];
                         currRunningProc.setRandomBurstForCPU();
-                        blockedQ.remove(pArray[i]);
+                        blockedQ.remove(blockedProcs[i]);
                     }
                 }
             }
-
-            if(!blockedQ.isEmpty())
-                ioTime++;
 
             if(currRunningProc!=null){
                 if(currRunningProc.totalCPUTimeRemaining==0){
                     finishedCount++;
                     currRunningProc.finishingTime = cycleCount;
-                    readyQ.remove(currRunningProc);
                     finishedQ.add(currRunningProc);
                     currRunningProc=null;
                 }else if(currRunningProc.totalCPUTimeRemaining>0&&
@@ -127,8 +122,8 @@ public class UniProgrammed {
                 }
             }
         }
-
-        Collections.sort(procs,new CompareByProcessID());
+        System.out.println("\n\nThe scheduling algorithm used was Uniprocessing\n\n");
+        Collections.sort(procs,new CompareByArrivalTime());
         float turnaround=0;
         float waiting=0;
         for(int i=0;i<procs.size();i++) {
@@ -139,12 +134,13 @@ public class UniProgrammed {
                     +p.burstTime+","
                     +p.totalCPUTime+","
                     +p.multiplier+")");
-            System.out.println("\tFinishing Time : "+p.finishingTime);
+            System.out.println("\tFinishing time: "+p.finishingTime);
             System.out.println("\tTurnaround time: "+(p.finishingTime-p.arrivalTime));
-            System.out.println("\tI/O time : "+p.ioTime);
-            System.out.println("\tWaiting time : "+p.waitingTime);
+            System.out.println("\tI/O time: "+p.ioTime);
+            System.out.println("\tWaiting time: "+p.waitingTime);
             turnaround+=(p.finishingTime-p.arrivalTime);
             waiting+=p.waitingTime;
+            p.clear();
         }
 
         System.out.println("\n\nSummary Data: ");
@@ -154,23 +150,25 @@ public class UniProgrammed {
         System.out.println("\tThroughput: "+String.format("%.6f",(((float)numProcs/(float)cycleCount)*100))+" processes per hundred cycles");
         System.out.println("\tAverage turnaround time: "+String.format("%.6f",(float)(turnaround/numProcs)));
         System.out.println("\tAverage waiting time: "+String.format("%.6f",(float)(waiting/numProcs)));
+        Process.randomGenerator.resetPtr();
     }
 
     public void printProcessState(int numProcs){
-        System.out.print("Before cycle\t"+cycleCount+"  ");
+        System.out.print("Before cycle:\t"+cycleCount+"  ");
         for(int i=0;i<numProcs;i++){
             if(blockedQ.contains(procs.get(i)))
-                System.out.print("\tblocked  "+procs.get(i).currIOBurst+"\t");
+                System.out.print("\tblocked  "+procs.get(i).currIOBurst);
             else if(readyQ.contains(procs.get(i)))
                 System.out.print("\tready   0");
             else if(finishedQ.contains(procs.get(i)))
                 System.out.print("\tterminated  ");
             else if(notStartedQ.contains(procs.get(i)) && cycleCount <= procs.get(i).arrivalTime)
-                System.out.print("\tunstarted");
+                System.out.print("\tunstarted 0");
             else
                 System.out.print("\trunning  "+((1+procs.get(i).currCPUBurst)-1));
         }
         System.out.println(".");
     }
+
 }
 
